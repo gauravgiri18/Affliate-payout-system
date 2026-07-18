@@ -17,7 +17,7 @@ app.use("/api/sales", saleRoutes);
 app.get("/health", (req, res) => {
     res.json({
         success: true,
-        messagge: "Affliate payout system is running"
+        message: "Affliate payout system is running"
     });
 });
 
