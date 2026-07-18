@@ -6,6 +6,7 @@ const cors = require("cors");
 const connectDatabase = require("./config/database");
 const userRoutes = require("./routes/userRoutes");
 const saleRoutes = require("./routes/saleRoute");
+const payoutRoutes = require("./routes/payoutRoutes");
 
 const app = express();
 
@@ -13,6 +14,7 @@ app.use(cors());
 app.use(express.json());
 app.use("/api/users", userRoutes);
 app.use("/api/sales", saleRoutes);
+app.use("/api/payouts", payoutRoutes);
 
 app.get("/health", (req, res) => {
     res.json({

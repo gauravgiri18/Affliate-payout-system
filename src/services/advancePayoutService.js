@@ -9,64 +9,92 @@ async function processAdvancePayouts() {
         status: "pending"
     });
 
-    const result = [];
+    const results = [];
 
     for(const sale of pendingSales){
-        const existingPayout = await Payout.findOne({
-            saleId: sale._id,
-            advanceStatus: "paid"
-        });
-        if(existingPayout){
-            result.push({
-                saleId: sale._id,
-                status: "skipped",
-                message: "Advance payout already paid"
-            })
-
-            continue;
-        }
-
-        const advanceAmount = (sale.earning * advancePercentage)/ 100;
-
-        const user = await User.findOne({
-            userId: sale.userId
-        });
-
-        if(!user){//this is not possible but we are making this condition if it happende
-            result.push({
-                saleId: sale._id,
-                status: "failed",
-                message: "User not found"
+        try {
+            const existingPayout = await Payout.findOne({
+                saleId: sale._id
             });
 
-            continue;
+            if(existingPayout){
+                if(existingPayout.advanceStatus === "paid"){
+                    results.push({
+                        saleId: sale._id,
+                        status: "skipped",
+                        message: "Advance payout already paid"
+                    });
+                    continue;
+                }
+
+                if(existingPayout.advanceStatus === "processing"){
+                    results.push({
+                        saleId: sale._id,
+                        status: "skipped",
+                        message: "Advance payout is already processing"
+                    });
+
+                    continue;
+                }
+            }
+
+            const user = await User.findOne({
+                userId: sale.userId
+            });
+
+            if(!user){
+                results.push({
+                    saleId: sale._id,
+                    status: "failed",
+                    message: "User Not Found"
+                });
+
+                continue;
+            }
+
+            const advanceAmount = (sale.earning*advancePercentage)/100;
+
+            let payout;
+
+            if(existingPayout){
+                existingPayout.advancePayment = advanceAmount;
+                existingPayout.advanceStatus = "paid";
+                existingPayout.advancePaidAt = new Date();
+
+                payout = await existingPayout.save();
+            } else {
+                payout = await Payout.create({
+                    saleId: sale._id,
+                    userId: sale.userId,
+                    earning: sale.earning,
+                    advancePayment: advanceAmount,
+                    advanceStatus: "paid",
+                    advancePaidAt: new Date()
+                });
+            }
+
+            user.withdrawableBalance += advanceAmount;
+
+            await user.save();
+
+            results.push({
+                saleId: sale._id,
+                status: "paid",
+                advancePayment: advanceAmount,
+                payoutId: payout._id
+            });
+        } catch(err){
+            results.push({
+                saleId: sale._id,
+                status: "failed",
+                message: err.message
+            });
         }
-
-        const payout = await Payout.create({
-            saleId: sale._id,
-            userId: sale.userId,
-            earning: sale.earning,
-            advancePayment: advanceAmount,
-            advanceStatus: "paid",
-            advancePaidAt: new Date()
-        });
-
-        user.withdrawableBalance += advanceAmount;
-
-        await user.save();
-
-        result.push({
-            saleId: sale._id,
-            status: "paid",
-            advanceAmount,
-            payoutId: payout._id
-        });
-
-        return result
-
     }
+
+    return results;
 }
 
 module.exports = {
     processAdvancePayouts
-}
+};

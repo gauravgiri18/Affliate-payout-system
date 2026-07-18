@@ -2,6 +2,8 @@ const express = require("express");
 const Sale = require("../models/Sale");
 const User = require("../models/User");
 
+const { reconcileSale } = require("../services/reconciliationService");
+
 const router = express.Router();
 
 router.post("/", async (req, res) => {
@@ -31,6 +33,26 @@ router.post("/", async (req, res) => {
             success: false,
             message: err.message
         });
+    }
+});
+
+router.patch("/:saleId/reconcile", async (req, res) => {
+    try {
+        const { saleId } = req.params;
+        const { status } = req.body;
+
+        const result = await reconcileSale(saleId, status);
+
+        res.status(200). json({
+            success: true,
+            message: "Sale reconciled successfully",
+            data: result
+        });
+    } catch(err) {
+        res.status(400).json({
+            success: false,
+            message: err.message
+        })
     }
 })
 
