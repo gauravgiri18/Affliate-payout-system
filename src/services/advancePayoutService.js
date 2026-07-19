@@ -2,7 +2,7 @@ const Payout = require("../models/Payout");
 const User = require("../models/User");
 const Sale = require("../models/Sale");
 
-const advancePercentage = 10;
+const ADVANCE_PERCENTAGE = 10;
 
 async function processAdvancePayouts() {
     const pendingSales = await Sale.find({
@@ -52,7 +52,7 @@ async function processAdvancePayouts() {
                 continue;
             }
 
-            const advanceAmount = (sale.earning*advancePercentage)/100;
+            const advanceAmount = (sale.earning*ADVANCE_PERCENTAGE)/100;
 
             let payout;
 
